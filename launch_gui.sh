@@ -29,19 +29,35 @@ if ! PY_WITH_TK="$(pick_python_with_tk)"; then
   echo "No Tk-enabled Python interpreter was found."
   case "$(uname -s)" in
     Darwin)
-      echo "On macOS, install a Tk-enabled Python (examples):"
-      echo "  brew install python@3.12 python-tk@3.12"
-      echo "  # or install Python from python.org (includes tkinter)"
+      if command -v brew >/dev/null 2>&1; then
+        read -r -p "Install Tk-enabled Python via Homebrew now? [y/N] " install_reply
+        case "${install_reply,,}" in
+          y|yes)
+            echo "Installing with Homebrew..."
+            brew install python@3.12 python-tk@3.12
+            ;;
+          *)
+            echo "Skipped Homebrew install."
+            ;;
+        esac
+      fi
+      if ! PY_WITH_TK="$(pick_python_with_tk)"; then
+        echo "On macOS, install a Tk-enabled Python (examples):"
+        echo "  brew install python@3.12 python-tk@3.12"
+        echo "  # or install Python from python.org (includes tkinter)"
+        exit 1
+      fi
       ;;
     Linux)
       echo "On Debian/Ubuntu, install:"
       echo "  sudo apt-get install python3 python3-tk"
+      exit 1
       ;;
     *)
       echo "Install Python 3.10+ with Tk support and rerun this script."
+      exit 1
       ;;
   esac
-  exit 1
 fi
 
 if [ ! -d .venv ]; then
