@@ -16,7 +16,8 @@ try:
 except ModuleNotFoundError:
     print(
         "Tkinter is not available in this Python installation. "
-        "Install Tk support (for example: python3-tk on Debian/Ubuntu).",
+        "Install a Tk-enabled Python (for example: python-tk via Homebrew on macOS, "
+        "or python3-tk on Debian/Ubuntu).",
         file=sys.stderr,
     )
     raise SystemExit(1)

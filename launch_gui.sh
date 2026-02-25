@@ -20,5 +20,28 @@ VENV_PY=".venv/bin/python"
 echo "Installing/updating dependencies..."
 "$VENV_PY" -m pip install -r requirements.txt
 
+if ! "$VENV_PY" - <<'PY'
+import tkinter  # noqa: F401
+PY
+then
+  echo
+  echo "Tkinter is not available in this Python installation."
+  case "$(uname -s)" in
+    Darwin)
+      echo "On macOS, install a Tk-enabled Python, for example:"
+      echo "  brew install python-tk@3.12"
+      echo "Then rerun ./launch_gui.sh"
+      ;;
+    Linux)
+      echo "On Debian/Ubuntu, install:"
+      echo "  sudo apt-get install python3-tk"
+      ;;
+    *)
+      echo "Install Tk support for your Python version, then rerun this script."
+      ;;
+  esac
+  exit 1
+fi
+
 echo "Starting GUI..."
 exec "$VENV_PY" bingo_gui.py
