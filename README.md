@@ -21,6 +21,7 @@ Cross-platform Python CLI for generating printable bingo sheet PDFs.
   - Range does not split evenly across B/I/N/G/O in `segmented` mode.
   - Requested sheet count leaves empty card slots on final page.
 - Desktop GUI included (`bingo_gui.py`) for non-CLI users.
+- GUI supports automatic language selection from desktop locale (currently English and Finnish), with manual language switch in the app.
 
 ## Install
 
