@@ -58,3 +58,6 @@ python3 bingo_generator.py --sheets 10 --sheets-per-page 4 --assume-yes --output
 ## Notes
 - Works on Linux, macOS, and Windows with Python 3.10+.
 - If using `--distribution segmented`, choose ranges that divide well into 5 segments for classic behavior.
+
+## License
+MIT. See the repository `LICENSE` file.
