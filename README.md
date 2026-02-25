@@ -20,12 +20,28 @@ Cross-platform Python CLI for generating printable bingo sheet PDFs.
 - Safety warnings requiring confirmation:
   - Range does not split evenly across B/I/N/G/O in `segmented` mode.
   - Requested sheet count leaves empty card slots on final page.
+- Desktop GUI included (`bingo_gui.py`) for non-CLI users.
 
 ## Install
 
 ```bash
 python3 -m pip install -r requirements.txt
 ```
+
+## GUI (Recommended for non-CLI users)
+
+Run one of these launchers from the project root:
+
+```bash
+./launch_gui.sh
+```
+
+On Windows, double-click `launch_gui.bat` (or run it in Command Prompt).
+
+The launcher scripts:
+- create `.venv` automatically if missing
+- install/update required libraries
+- start the GUI
 
 ## Usage
 
@@ -62,6 +78,7 @@ python3 bingo_generator.py --sheets 10 --sheets-per-page 4 --assume-yes --output
 ## Notes
 - Works on Linux, macOS, and Windows with Python 3.10+.
 - If using `--distribution segmented`, choose ranges that divide well into 5 segments for classic behavior.
+- Linux may require Tk package for GUI (for example `python3-tk` on Debian/Ubuntu).
 
 ## License
 MIT. See the repository `LICENSE` file.

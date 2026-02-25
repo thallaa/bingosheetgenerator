@@ -11,7 +11,7 @@ import random
 import re
 import sys
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Sequence, Tuple
+from typing import Callable, Dict, List, Optional, Sequence, Tuple
 
 try:
     from reportlab.lib import colors
@@ -212,31 +212,9 @@ def validate_config(config: Config) -> List[List[int]]:
             f"Number range must include at least {required_cells} values for this card layout"
         )
 
-    if config.sheets % config.sheets_per_page != 0:
-        pages_needed = math.ceil(config.sheets / config.sheets_per_page)
-        capacity = pages_needed * config.sheets_per_page
-        empty_slots = capacity - config.sheets
-        confirm_or_exit(
-            (
-                f"Requested {config.sheets} sheet(s) with {config.sheets_per_page} per page. "
-                f"This creates {pages_needed} page(s) with {empty_slots} empty slot(s)."
-            ),
-            config.assume_yes,
-        )
-
     segments: List[List[int]] = []
     if config.distribution == "segmented":
         segments = segment_ranges(config.min_number, config.max_number, parts=5)
-        lengths = [len(x) for x in segments]
-        if len(set(lengths)) != 1:
-            confirm_or_exit(
-                (
-                    "Number range does not split evenly across B/I/N/G/O columns "
-                    f"({lengths}). This is unusual for segmented bingo."
-                ),
-                config.assume_yes,
-            )
-
         required_per_col = [5, 5, 4, 5, 5] if config.free_center else [5, 5, 5, 5, 5]
         for letter, bucket, need in zip(LETTERS, segments, required_per_col):
             if len(bucket) < need:
@@ -245,6 +223,34 @@ def validate_config(config: Config) -> List[List[int]]:
                 )
 
     return segments
+
+
+def collect_warnings(config: Config) -> List[str]:
+    warnings: List[str] = []
+
+    if config.sheets % config.sheets_per_page != 0:
+        pages_needed = math.ceil(config.sheets / config.sheets_per_page)
+        capacity = pages_needed * config.sheets_per_page
+        empty_slots = capacity - config.sheets
+        warnings.append(
+            (
+                f"Requested {config.sheets} sheet(s) with {config.sheets_per_page} per page. "
+                f"This creates {pages_needed} page(s) with {empty_slots} empty slot(s)."
+            )
+        )
+
+    if config.distribution == "segmented":
+        segments = segment_ranges(config.min_number, config.max_number, parts=5)
+        lengths = [len(x) for x in segments]
+        if len(set(lengths)) != 1:
+            warnings.append(
+                (
+                    "Number range does not split evenly across B/I/N/G/O columns "
+                    f"({lengths}). This is unusual for segmented bingo."
+                )
+            )
+
+    return warnings
 
 
 def generate_card(
@@ -360,7 +366,10 @@ def draw_card(
                 c.drawCentredString(cx, cy, str(value))
 
 
-def generate_pdf(config: Config) -> None:
+def generate_pdf(
+    config: Config,
+    warning_handler: Optional[Callable[[str], bool]] = None,
+) -> None:
     rng = random.Random(config.seed)
     paper_size = A4 if config.paper_size == "a4" else LETTER
     page_w, page_h = paper_size
@@ -375,6 +384,14 @@ def generate_pdf(config: Config) -> None:
         letter_colors = parse_custom_letter_colors(config.custom_letter_colors)
 
     segments = validate_config(config)
+
+    for warning in collect_warnings(config):
+        if warning_handler is not None:
+            approved = warning_handler(warning)
+            if not approved:
+                raise ValueError("Generation canceled by user")
+        else:
+            confirm_or_exit(warning, config.assume_yes)
 
     pdf = canvas.Canvas(config.output, pagesize=paper_size)
     cols, rows = choose_grid(config.sheets_per_page, page_w, page_h)
