@@ -4,6 +4,7 @@ Cross-platform Python CLI for generating printable bingo sheet PDFs.
 
 ## Features
 - Standard 5x5 bingo sheets with `FREE` center.
+  - `FREE` center is configurable (`--free-center` / `--no-free-center`).
 - Configurable number range (`--min-number`, `--max-number`, default `1-75`).
 - Configurable total sheets (`--sheets`).
 - Configurable sheets per paper page (`--sheets-per-page`, default `4`).
@@ -43,6 +44,9 @@ python3 bingo_generator.py --sheets 30 --sheets-per-page 6 --paper-size letter -
 
 # Fully random number positions
 python3 bingo_generator.py --sheets 12 --distribution fully-random --output random_positions.pdf
+
+# Disable free center (all 25 cells filled with numbers)
+python3 bingo_generator.py --sheets 12 --no-free-center --output no_free_center.pdf
 
 # Custom BINGO letter colors
 python3 bingo_generator.py \

@@ -47,6 +47,8 @@ class Config:
     distribution: str
     letter_color_mode: str
     custom_letter_colors: Optional[str]
+    free_center: bool
+    free_center_text: str
     seed: Optional[int]
     assume_yes: bool
 
@@ -107,6 +109,17 @@ def parse_args(argv: Sequence[str]) -> Config:
             "Required when --letter-color-mode custom. "
             "Format: B:#1F77B4,I:#D62728,N:#2CA02C,G:#FFBF00,O:#9467BD"
         ),
+    )
+    parser.add_argument(
+        "--free-center",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Use FREE center cell (default: enabled, use --no-free-center to disable)",
+    )
+    parser.add_argument(
+        "--free-center-text",
+        default="FREE",
+        help="Text shown in center cell when free center is enabled (default: FREE)",
     )
     parser.add_argument("--seed", type=int, help="Optional random seed for repeatable output")
     parser.add_argument(
@@ -193,8 +206,11 @@ def validate_config(config: Config) -> List[List[int]]:
         raise ValueError("--max-number must be >= --min-number")
 
     all_numbers_count = config.max_number - config.min_number + 1
-    if all_numbers_count < 24:
-        raise ValueError("Number range must include at least 24 values for a 5x5 card with free center")
+    required_cells = 24 if config.free_center else 25
+    if all_numbers_count < required_cells:
+        raise ValueError(
+            f"Number range must include at least {required_cells} values for this card layout"
+        )
 
     if config.sheets % config.sheets_per_page != 0:
         pages_needed = math.ceil(config.sheets / config.sheets_per_page)
@@ -221,7 +237,7 @@ def validate_config(config: Config) -> List[List[int]]:
                 config.assume_yes,
             )
 
-        required_per_col = [5, 5, 4, 5, 5]
+        required_per_col = [5, 5, 4, 5, 5] if config.free_center else [5, 5, 5, 5, 5]
         for letter, bucket, need in zip(LETTERS, segments, required_per_col):
             if len(bucket) < need:
                 raise ValueError(
@@ -237,26 +253,28 @@ def generate_card(
     max_number: int,
     distribution: str,
     segments: List[List[int]],
+    free_center: bool,
 ) -> List[List[Optional[int]]]:
     card: List[List[Optional[int]]] = [[None for _ in range(5)] for _ in range(5)]
 
     if distribution == "segmented":
         for col in range(5):
-            need = 4 if col == 2 else 5
+            need = 4 if (free_center and col == 2) else 5
             chosen = sorted(rng.sample(segments[col], need))
             row_indices = [0, 1, 2, 3, 4]
-            if col == 2:
+            if free_center and col == 2:
                 row_indices.remove(2)
             for row, value in zip(row_indices, chosen):
                 card[row][col] = value
     else:
         pool = list(range(min_number, max_number + 1))
-        chosen = rng.sample(pool, 24)
+        total_numbers = 24 if free_center else 25
+        chosen = rng.sample(pool, total_numbers)
         rng.shuffle(chosen)
         i = 0
         for row in range(5):
             for col in range(5):
-                if row == 2 and col == 2:
+                if free_center and row == 2 and col == 2:
                     continue
                 card[row][col] = chosen[i]
                 i += 1
@@ -290,6 +308,8 @@ def draw_card(
     h: float,
     card: List[List[Optional[int]]],
     letter_colors: Dict[str, colors.Color],
+    free_center: bool,
+    free_center_text: str,
 ) -> None:
     padding = 4 * mm
     inner_x = x + padding
@@ -331,9 +351,9 @@ def draw_card(
         for col in range(5):
             cx = inner_x + (col + 0.5) * col_w
             cy = grid_y + (4 - row + 0.5) * cell_h
-            if row == 2 and col == 2:
+            if free_center and row == 2 and col == 2:
                 c.setFont("Helvetica-Bold", max(7, min(14, cell_h * 0.3)))
-                c.drawCentredString(cx, cy, "FREE")
+                c.drawCentredString(cx, cy, free_center_text)
                 c.setFont("Helvetica", max(8, min(18, cell_h * 0.4)))
             else:
                 value = card[row][col]
@@ -384,8 +404,19 @@ def generate_pdf(config: Config) -> None:
             max_number=config.max_number,
             distribution=config.distribution,
             segments=segments,
+            free_center=config.free_center,
         )
-        draw_card(pdf, x, y, card_w, card_h, card, letter_colors)
+        draw_card(
+            pdf,
+            x,
+            y,
+            card_w,
+            card_h,
+            card,
+            letter_colors,
+            free_center=config.free_center,
+            free_center_text=config.free_center_text,
+        )
 
     pdf.save()
 
